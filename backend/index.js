@@ -1,14 +1,15 @@
-import express from 'express';
-import axios from 'axios';
-import multer from 'multer';
-import FormData from 'form-data';
-import crypto from 'crypto';
-import * as fs from 'fs';
-import simpleGit from 'simple-git';
-import dotenv from 'dotenv';
-import cors from 'cors';
-import { GoogleGenerativeAI } from '@google/generative-ai';
-import { analyzeFile, checkGitHubRepo, getAllFiles } from './lib/utils.js';
+import express from "express";
+import axios from "axios";
+import multer from "multer";
+import FormData from "form-data";
+import crypto from "crypto";
+import * as fs from "fs";
+import simpleGit from "simple-git";
+import dotenv from "dotenv";
+import cors from "cors";
+import { GoogleGenerativeAI } from "@google/generative-ai";
+import { analyzeFile, checkGitHubRepo, getAllFiles } from "./lib/utils.js";
+import { arch } from "os";
 // 🔹 Load environment variables
 dotenv.config();
 
@@ -16,21 +17,21 @@ const app = express();
 
 app.use(
   cors({
-    origin: process.env.FRONTEND_BASE_URL || '*',
-  })
+    origin: process.env.FRONTEND_BASE_URL || "*",
+  }),
 );
 const PORT = 8080;
 
 // Initialize Gemini with API Key
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
+const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
 
 // Middleware
 app.use(express.json());
 const upload = multer({ storage: multer.memoryStorage() });
 
-const VIRUSTOTAL_API = 'https://www.virustotal.com/api/v3';
-const VT_HEADERS = { 'x-apikey': process.env.VIRUSTOTAL_API_KEY };
+const VIRUSTOTAL_API = "https://www.virustotal.com/api/v3";
+const VT_HEADERS = { "x-apikey": process.env.VIRUSTOTAL_API_KEY };
 
 // Polling configuration
 const MAX_POLLING_ATTEMPTS = 30;
@@ -45,21 +46,21 @@ async function pollForResults(scan_id) {
   while (!analysisComplete && attempts < MAX_POLLING_ATTEMPTS) {
     attempts++;
     console.log(
-      `🔄 Polling attempt ${attempts}/${MAX_POLLING_ATTEMPTS} for scan ID: ${scan_id}`
+      `🔄 Polling attempt ${attempts}/${MAX_POLLING_ATTEMPTS} for scan ID: ${scan_id}`,
     );
 
     reportResponse = await axios.get(`${VIRUSTOTAL_API}/analyses/${scan_id}`, {
       headers: VT_HEADERS,
     });
 
-    if (reportResponse.data.data.attributes.status === 'completed') {
+    if (reportResponse.data.data.attributes.status === "completed") {
       analysisComplete = true;
       console.log(`✅ Analysis completed after ${attempts} attempts`);
     } else {
       console.log(
         `⏳ Analysis status: ${
           reportResponse.data.data.attributes.status
-        }. Waiting ${POLLING_INTERVAL / 1000} seconds...`
+        }. Waiting ${POLLING_INTERVAL / 1000} seconds...`,
       );
       await new Promise((resolve) => setTimeout(resolve, POLLING_INTERVAL));
     }
@@ -71,11 +72,13 @@ async function pollForResults(scan_id) {
     attempts: attempts,
   };
 }
-
+app.get("/", async (req, res) => {
+  res.json({ message: "SparkShield Api is running" });
+});
 // 1️⃣ **Scan a URL with polling for completion**
-app.get('/scan/url', async (req, res) => {
+app.get("/scan/url", async (req, res) => {
   const { url } = req.query;
-  if (!url) return res.status(400).json({ error: 'URL is required' });
+  if (!url) return res.status(400).json({ error: "URL is required" });
 
   console.log(`📌 Scanning URL: ${url}`);
 
@@ -84,7 +87,7 @@ app.get('/scan/url', async (req, res) => {
     const scanResponse = await axios.post(
       `${VIRUSTOTAL_API}/urls`,
       new URLSearchParams({ url }),
-      { headers: VT_HEADERS }
+      { headers: VT_HEADERS },
     );
 
     const scan_id = scanResponse.data.data.id;
@@ -95,11 +98,11 @@ app.get('/scan/url', async (req, res) => {
 
     if (!pollResult.complete) {
       console.warn(
-        `⚠️ Analysis did not complete after ${pollResult.attempts} attempts`
+        `⚠️ Analysis did not complete after ${pollResult.attempts} attempts`,
       );
       return res.status(202).json({
-        status: 'pending',
-        message: 'Analysis is still in progress. Please try again later.',
+        status: "pending",
+        message: "Analysis is still in progress. Please try again later.",
         scan_id: scan_id,
       });
     }
@@ -110,31 +113,31 @@ app.get('/scan/url', async (req, res) => {
     if (
       Object.keys(pollResult.response.data.data.attributes.results).length === 0
     ) {
-      console.warn('⚠️ Empty results in completed analysis');
+      console.warn("⚠️ Empty results in completed analysis");
     }
 
     res.json(pollResult.response.data);
   } catch (error) {
     console.error(`❌ Error scanning URL: ${url}`, error.message);
     res.status(500).json({
-      error: 'Error scanning URL',
+      error: "Error scanning URL",
       details: error.response?.data || error.message,
     });
   }
 });
 
 // 2️⃣ **Scan a File with polling for completion**
-app.post('/scan/file', upload.single('file'), async (req, res) => {
+app.post("/scan/file", upload.single("file"), async (req, res) => {
   try {
     if (!req.file) {
-      console.error('❌ No file provided in request');
-      return res.status(400).json({ error: 'No file provided' });
+      console.error("❌ No file provided in request");
+      return res.status(400).json({ error: "No file provided" });
     }
 
     console.log(`📌 Scanning file: ${req.file.originalname}`);
 
     const formData = new FormData();
-    formData.append('file', req.file.buffer, req.file.originalname);
+    formData.append("file", req.file.buffer, req.file.originalname);
 
     const scanResponse = await axios.post(`${VIRUSTOTAL_API}/files`, formData, {
       headers: { ...VT_HEADERS, ...formData.getHeaders() },
@@ -148,11 +151,11 @@ app.post('/scan/file', upload.single('file'), async (req, res) => {
 
     if (!pollResult.complete) {
       console.warn(
-        `⚠️ Analysis did not complete after ${pollResult.attempts} attempts`
+        `⚠️ Analysis did not complete after ${pollResult.attempts} attempts`,
       );
       return res.status(202).json({
-        status: 'pending',
-        message: 'Analysis is still in progress. Please try again later.',
+        status: "pending",
+        message: "Analysis is still in progress. Please try again later.",
         scan_id: scan_id,
       });
     }
@@ -162,14 +165,14 @@ app.post('/scan/file', upload.single('file'), async (req, res) => {
   } catch (error) {
     console.error(`❌ Error scanning file:`, error.message);
     res.status(500).json({
-      error: 'Error scanning file',
+      error: "Error scanning file",
       details: error.response?.data || error.message,
     });
   }
 });
 
 // 3️⃣ **Scan a Domain or IP**
-app.get('/scan/domain/:value', async (req, res) => {
+app.get("/scan/domain/:value", async (req, res) => {
   try {
     const { value } = req.params;
     console.log(`📌 Getting domain report for: ${value}`);
@@ -183,16 +186,16 @@ app.get('/scan/domain/:value', async (req, res) => {
   } catch (error) {
     console.error(
       `❌ Error fetching domain scan report for ${req.params.value}:`,
-      error.message
+      error.message,
     );
     res.status(500).json({
-      error: 'Error fetching domain scan report',
+      error: "Error fetching domain scan report",
       details: error.response?.data || error.message,
     });
   }
 });
 
-app.get('/scan/ip/:value', async (req, res) => {
+app.get("/scan/ip/:value", async (req, res) => {
   try {
     const { value } = req.params;
     console.log(`📌 Getting IP report for: ${value}`);
@@ -201,7 +204,7 @@ app.get('/scan/ip/:value', async (req, res) => {
       `${VIRUSTOTAL_API}/ip_addresses/${value}`,
       {
         headers: VT_HEADERS,
-      }
+      },
     );
 
     console.log(`✅ Successfully retrieved IP report for: ${value}`);
@@ -209,17 +212,17 @@ app.get('/scan/ip/:value', async (req, res) => {
   } catch (error) {
     console.error(
       `❌ Error fetching IP scan report for ${req.params.value}:`,
-      error.message
+      error.message,
     );
     res.status(500).json({
-      error: 'Error fetching IP scan report',
+      error: "Error fetching IP scan report",
       details: error.response?.data || error.message,
     });
   }
 });
 
 // 4️⃣ **Fetch Scan Report with polling if necessary**
-app.get('/report/:scan_id', async (req, res) => {
+app.get("/report/:scan_id", async (req, res) => {
   try {
     const { scan_id } = req.params;
     console.log(`📌 Retrieving report for scan ID: ${scan_id}`);
@@ -230,9 +233,9 @@ app.get('/report/:scan_id', async (req, res) => {
     });
 
     // Check if report is completed, if not, poll for completion
-    if (response.data.data.attributes.status !== 'completed') {
+    if (response.data.data.attributes.status !== "completed") {
       console.log(
-        `⏳ Report not yet completed. Status: ${response.data.data.attributes.status}`
+        `⏳ Report not yet completed. Status: ${response.data.data.attributes.status}`,
       );
       console.log(`🔄 Starting polling for scan ID: ${scan_id}`);
 
@@ -240,17 +243,17 @@ app.get('/report/:scan_id', async (req, res) => {
 
       if (!pollResult.complete) {
         console.warn(
-          `⚠️ Analysis did not complete after ${pollResult.attempts} attempts`
+          `⚠️ Analysis did not complete after ${pollResult.attempts} attempts`,
         );
         return res.status(202).json({
-          status: 'pending',
-          message: 'Analysis is still in progress. Please try again later.',
+          status: "pending",
+          message: "Analysis is still in progress. Please try again later.",
           scan_id: scan_id,
         });
       }
 
       console.log(
-        `✅ Successfully retrieved complete report for scan ID: ${scan_id}`
+        `✅ Successfully retrieved complete report for scan ID: ${scan_id}`,
       );
       return res.json(pollResult.response.data);
     }
@@ -260,14 +263,14 @@ app.get('/report/:scan_id', async (req, res) => {
   } catch (error) {
     console.error(
       `❌ Error retrieving report for scan ID ${req.params.scan_id}:`,
-      error.message
+      error.message,
     );
     res.status(500).json({ error: error.response?.data || error.message });
   }
 });
 
 // 5️⃣ **Get scan status (new endpoint)**
-app.get('/scan/status/:scan_id', async (req, res) => {
+app.get("/scan/status/:scan_id", async (req, res) => {
   try {
     const { scan_id } = req.params;
     console.log(`📌 Checking status for scan ID: ${scan_id}`);
@@ -287,32 +290,32 @@ app.get('/scan/status/:scan_id', async (req, res) => {
   } catch (error) {
     console.error(
       `❌ Error checking scan status for ${req.params.scan_id}:`,
-      error.message
+      error.message,
     );
     res.status(500).json({ error: error.response?.data || error.message });
   }
 });
 
 // 6️⃣ **Remediation Guidance**
-app.get('/remediation', async (req, res) => {
+app.get("/remediation", async (req, res) => {
   try {
     const { threat_type } = req.query;
     if (!threat_type) {
-      console.error('❌ No threat type provided in request');
-      return res.status(400).json({ error: 'Threat type is required' });
+      console.error("❌ No threat type provided in request");
+      return res.status(400).json({ error: "Threat type is required" });
     }
 
     console.log(`📌 Getting remediation for threat type: ${threat_type}`);
     const prompt = `Provide remediation steps for ${threat_type} detected by VirusTotal.`;
 
     const geminiResponse = await model.generateContent({
-      contents: [{ role: 'user', parts: [{ text: prompt }] }],
+      contents: [{ role: "user", parts: [{ text: prompt }] }],
     });
 
     const responseText = geminiResponse.response.text();
 
     console.log(
-      `✅ Successfully retrieved remediation for threat type: ${threat_type}`
+      `✅ Successfully retrieved remediation for threat type: ${threat_type}`,
     );
     res.json({ remediation_steps: responseText });
   } catch (error) {
@@ -322,13 +325,13 @@ app.get('/remediation', async (req, res) => {
 });
 
 // 7️⃣ **Scan GitHub Repository**
-app.get('/scan-repo', async (req, res) => {
+app.get("/scan-repo", async (req, res) => {
   const { repoUrl } = req.query;
   if (!repoUrl) {
-    console.error('❌ No repository URL provided');
+    console.error("❌ No repository URL provided");
     return res
       .status(400)
-      .json({ status: '❌ Error', message: 'Repository URL required' });
+      .json({ status: "❌ Error", message: "Repository URL required" });
   }
 
   console.log(`📌 Starting scan for repository: ${repoUrl}`);
@@ -347,9 +350,9 @@ app.get('/scan-repo', async (req, res) => {
 
     for (const file of files) {
       if (
-        file.endsWith('.js') ||
-        file.endsWith('.py') ||
-        file.endsWith('.sh')
+        file.endsWith(".js") ||
+        file.endsWith(".py") ||
+        file.endsWith(".sh")
       ) {
         console.log(`🔍 Analyzing file: ${file}`);
         const result = await analyzeFile(file);
@@ -359,13 +362,13 @@ app.get('/scan-repo', async (req, res) => {
     }
 
     // 🛡️ Step 3: Check Repository Trust
-    let trustCheck = { status: 'Unknown' };
+    let trustCheck = { status: "Unknown" };
 
     try {
       console.log(`🛡️ Checking GitHub trust for repository: ${repoUrl}`);
       trustCheck = await checkGitHubRepo(repoUrl);
       console.log(
-        `✅ GitHub trust check completed with status: ${trustCheck.status}`
+        `✅ GitHub trust check completed with status: ${trustCheck.status}`,
       );
     } catch (error) {
       console.error(`❌ Error checking GitHub trust:`, error.message);
@@ -383,7 +386,7 @@ app.get('/scan-repo', async (req, res) => {
     try {
       // Attempt cleanup even if there was an error
       console.log(
-        `🧹 Cleaning up temporary directory after error: ${repoPath}`
+        `🧹 Cleaning up temporary directory after error: ${repoPath}`,
       );
       fs.rmSync(repoPath, { recursive: true, force: true });
     } catch (cleanupError) {
@@ -391,7 +394,7 @@ app.get('/scan-repo', async (req, res) => {
     }
     res
       .status(500)
-      .json({ status: '❌ Error', message: 'Failed to scan repository' });
+      .json({ status: "❌ Error", message: "Failed to scan repository" });
   }
 });
 
@@ -446,22 +449,22 @@ app.get('/scan-repo', async (req, res) => {
 //   }
 // });
 // Fake Website Detection Endpoint
-app.post('/detect-clone', upload.single('image'), async (req, res) => {
+app.post("/detect-clone", upload.single("image"), async (req, res) => {
   try {
     if (!req.file) {
-      return res.status(400).json({ error: 'No image uploaded' });
+      return res.status(400).json({ error: "No image uploaded" });
     }
 
     // Convert image to Base64 for Gemini input
-    const base64Image = req.file.buffer.toString('base64');
+    const base64Image = req.file.buffer.toString("base64");
 
-    console.log('Image received. Sending to Gemini for analysis...');
+    console.log("Image received. Sending to Gemini for analysis...");
 
     // Send to Gemini Flash 2.0 for evaluation
     const result = await model.generateContent({
       contents: [
         {
-          role: 'user',
+          role: "user",
           parts: [
             {
               text: `Analyze this website screenshot and determine if it's a fake or a cloned site.
@@ -481,21 +484,21 @@ app.post('/detect-clone', upload.single('image'), async (req, res) => {
     });
 
     const responseText = result.response.text();
-    console.log('Gemini Response:', responseText);
+    console.log("Gemini Response:", responseText);
 
     // Remove any Markdown code block formatting (json ... )
-    const cleanedResponse = responseText.replace(/```json|```/g, '').trim();
+    const cleanedResponse = responseText.replace(/```json|```/g, "").trim();
 
     try {
       const analysis = JSON.parse(cleanedResponse);
       return res.json(analysis);
     } catch (error) {
-      console.error('JSON Parsing Error:', error);
-      return res.status(500).json({ error: 'Failed to parse Gemini response' });
+      console.error("JSON Parsing Error:", error);
+      return res.status(500).json({ error: "Failed to parse Gemini response" });
     }
   } catch (error) {
-    console.error('Error:', error);
-    return res.status(500).json({ error: 'Internal server error' });
+    console.error("Error:", error);
+    return res.status(500).json({ error: "Internal server error" });
   }
 });
 
