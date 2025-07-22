@@ -1,8 +1,6 @@
 # Spark Shield
 
 <div align="center">
-  <img src="frontend/public/placeholder.svg" alt="Spark Shield Logo" width="120" style="border-radius: 10px;"/>
-  
   [![Live Demo](https://img.shields.io/badge/Live%20Demo-Vercel-brightgreen?style=for-the-badge&logo=vercel)](https://spark-shield.vercel.app)
   ![React](https://img.shields.io/badge/React-18+-blue?style=for-the-badge&logo=react)
   ![TypeScript](https://img.shields.io/badge/TypeScript-4+-3178c6?style=for-the-badge&logo=typescript)
@@ -63,9 +61,3 @@ bun --watch index.js
     ├── lib/                 # Server utilities
     └── index.js            # Server entry
 ```
-
----
-
-<div align="center">
-  <p>A comprehensive security scanning and analysis platform</p>
-</div>
