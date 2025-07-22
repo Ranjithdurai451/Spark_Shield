@@ -1,12 +1,10 @@
 # Spark Shield
 
-<div align="center">
-  [![Live Demo](https://img.shields.io/badge/Live%20Demo-Vercel-brightgreen?style=for-the-badge&logo=vercel)](https://spark-shield.vercel.app)
-  ![React](https://img.shields.io/badge/React-18+-blue?style=for-the-badge&logo=react)
-  ![TypeScript](https://img.shields.io/badge/TypeScript-4+-3178c6?style=for-the-badge&logo=typescript)
-  ![Vite](https://img.shields.io/badge/Vite-Latest-646CFF?style=for-the-badge&logo=vite)
-  ![TailwindCSS](https://img.shields.io/badge/TailwindCSS-3-38B2AC?style=for-the-badge&logo=tailwind-css)
-</div>
+[![Live Demo](https://img.shields.io/badge/Live%20Demo-Vercel-brightgreen?style=for-the-badge&logo=vercel)](https://spark-shield.vercel.app)
+![React](https://img.shields.io/badge/React-18+-blue?style=for-the-badge&logo=react)
+![TypeScript](https://img.shields.io/badge/TypeScript-4+-3178c6?style=for-the-badge&logo=typescript)
+![Vite](https://img.shields.io/badge/Vite-Latest-646CFF?style=for-the-badge&logo=vite)
+![TailwindCSS](https://img.shields.io/badge/TailwindCSS-3-38B2AC?style=for-the-badge&logo=tailwind-css)
 
 ## About
 A comprehensive security scanning platform designed to detect and analyze potential security threats. Features include domain scanning, IP analysis, phishing detection, and file scanning capabilities.
